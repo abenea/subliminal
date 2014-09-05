@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, print_function
 import argparse
+import collections
 import datetime
 import logging
 import os
@@ -9,7 +10,8 @@ import sys
 import babelfish
 import xdg.BaseDirectory
 from subliminal import (__version__, cache_region, MutexLock, provider_manager, Video, Episode, Movie, scan_videos,
-    download_best_subtitles, save_subtitles)
+    download_best_subtitles, download_subtitles, save_subtitles)
+from subliminal.api import ProviderPool
 try:
     import colorlog
 except ImportError:
@@ -36,6 +38,8 @@ def subliminal():
                                      help='download without language code in subtitle\'s filename i.e. .srt only')
     configuration_group.add_argument('-c', '--cache-file', default=DEFAULT_CACHE_FILE,
                                      help='cache file (default: %(default)s)')
+    configuration_group.add_argument('--all', action='store_true',
+                                     help='download all subtitles')
 
     # filtering
     filtering_group = parser.add_argument_group('filtering')
@@ -176,13 +180,21 @@ def subliminal():
     # guess videos
     videos.extend([Video.fromname(p) for p in args.paths if not os.path.exists(p)])
 
-    # download best subtitles
-    subtitles = download_best_subtitles(videos, args.languages, providers=args.providers,
-                                        provider_configs=provider_configs, min_score=args.min_score,
-                                        hearing_impaired=args.hearing_impaired, single=args.single)
+    if args.all:
+        subtitles = collections.defaultdict(list)
+        with ProviderPool(args.providers, provider_configs) as pp:
+            for video in videos:
+                for subtitle in pp.list_subtitles(video, args.languages):
+                    if pp.download_subtitle(subtitle):
+                        subtitles[video].append(subtitle)
+    else:
+        # download best subtitles
+        subtitles = download_best_subtitles(videos, args.languages, providers=args.providers,
+                                            provider_configs=provider_configs, min_score=args.min_score,
+                                            hearing_impaired=args.hearing_impaired, single=args.single)
 
     # save subtitles
-    save_subtitles(subtitles, single=args.single, directory=args.directory, encoding=args.encoding)
+    save_subtitles(subtitles, single=args.single, directory=args.directory, encoding=args.encoding, save_multiple=args.all)
 
     # result output
     if not subtitles:

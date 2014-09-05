@@ -106,7 +106,7 @@ def download_best_subtitles(videos, languages, providers=None, provider_configs=
     return downloaded_subtitles
 
 
-def save_subtitles(subtitles, single=False, directory=None, encoding=None):
+def save_subtitles(subtitles, single=False, directory=None, encoding=None, save_multiple=False):
     """Save subtitles on disk next to the video or in a specific folder if `folder_path` is specified
 
     :param bool single: download with .srt extension if ``True``, add language identifier otherwise
@@ -118,14 +118,17 @@ def save_subtitles(subtitles, single=False, directory=None, encoding=None):
     """
     for video, video_subtitles in subtitles.items():
         saved_languages = set()
-        for video_subtitle in video_subtitles:
+        for i, video_subtitle in enumerate(video_subtitles):
             if video_subtitle.content is None:
                 logger.debug('Skipping subtitle %r: no content', video_subtitle)
                 continue
-            if video_subtitle.language in saved_languages:
+            number = None
+            if save_multiple:
+                number = i
+            elif video_subtitle.language in saved_languages:
                 logger.debug('Skipping subtitle %r: language already saved', video_subtitle)
                 continue
-            subtitle_path = get_subtitle_path(video.name, None if single else video_subtitle.language)
+            subtitle_path = get_subtitle_path(video.name, None if single else video_subtitle.language, number)
             if directory is not None:
                 subtitle_path = os.path.join(directory, os.path.split(subtitle_path)[1])
             logger.info('Saving %r to %r', video_subtitle, subtitle_path)

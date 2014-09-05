@@ -151,7 +151,7 @@ class Subtitle(object):
         return '<%s [%s]>' % (self.__class__.__name__, self.language)
 
 
-def get_subtitle_path(video_path, language=None):
+def get_subtitle_path(video_path, language=None, number=None):
     """Create the subtitle path from the given `video_path` and `language`
 
     :param string video_path: path to the video
@@ -162,6 +162,8 @@ def get_subtitle_path(video_path, language=None):
 
     """
     subtitle_path = os.path.splitext(video_path)[0]
+    if number is not None:
+        subtitle_path += '_%s' % number
     if language is not None:
         try:
             return subtitle_path + '.%s.%s' % (language.alpha2, 'srt')
