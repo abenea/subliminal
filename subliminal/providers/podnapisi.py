@@ -141,12 +141,7 @@ class PodnapisiProvider(Provider):
             return [s for l in languages for s in self.query(l, title=video.title, year=video.year)]
 
     def download_subtitle(self, subtitle):
-        soup = self.get(subtitle.page_link[38:], is_xml=False)
-        link = soup.find('a', href=self.link_re)
-        if not link:
-            raise ProviderError('Cannot find the download link')
-        download_url = self.link_re.match(link['href']).group('link').replace('/predownload/', '/download/')
-        r = self.session.get(self.server + download_url, timeout=10)
+        r = self.session.get(subtitle.page_link + '/download', timeout=10)
         if r.status_code != 200:
             raise ProviderError('Request failed with status code %d' % r.status_code)
         with zipfile.ZipFile(io.BytesIO(r.content)) as zf:
